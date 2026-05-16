@@ -23,7 +23,7 @@ def get_market_prices(
     name: str,
     start_date: str,
     end_date: str,
-) -> pd.DataFrame:
+):
     """
     Fetch historical market data for a financial asset from the data warehouse.
 
@@ -167,7 +167,7 @@ def get_asset_sentiment(
     name: str,
     start_date: str,
     end_date: str,
-) -> pd.DataFrame:
+):
     """
     Fetch sentiment/news data for a financial asset.
 
@@ -268,7 +268,7 @@ def get_asset_sentiment(
         df = pd.DataFrame(rows, columns=columns)
 
     except Exception as e:
-      logging.info(f"Database error: {e}")
+        logging.info(f"Database error: {e}")
 
         # Return empty DataFrame safely
         df = pd.DataFrame(
