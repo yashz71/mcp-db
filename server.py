@@ -7,6 +7,7 @@ import psycopg2
 import pandas as pd
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
+import yfinance as yf
 
 # Load environment variables
 load_dotenv(override=True)
@@ -17,6 +18,16 @@ conn_string = os.getenv("DATABASE_URL")
 # Initialize FastMCP server
 mcp = FastMCP("mcp-db", host="0.0.0.0", port=24000)
 
+@mcp.tool()
+def get_current_date() -> str:
+    """
+    Retrieves the current local date formatted as YYYY-MM-DD.
+    
+    Returns:
+        str: The current date.
+    """
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    return f"The current date is: {current_date}"
 
 @mcp.tool()
 def get_market_prices(
@@ -169,7 +180,7 @@ def get_asset_sentiment(
     end_date: str,
 ):
     """
-    Fetch sentiment/news data for a financial asset.
+    Fetch sentiment analysis/news data for a financial asset.
 
     Supported asset categories:
     - Stocks
@@ -295,6 +306,162 @@ def get_asset_sentiment(
             conn.close()
 
     return df
+
+
+
+
+@mcp.tool()
+def get_hist_data(
+    ticker: str,
+    start_date: str,
+    end_date: str,
+    interval: str ,
+):
+    """
+    Fetch historical market data for a financial asset using Yahoo Finance.
+
+    Supported assets:
+    - Stocks
+    - ETFs
+    - Commodities
+    - Forex pairs
+    - Indices
+    - Cryptocurrencies
+
+    Args:
+        ticker (str):
+            Yahoo Finance ticker symbol.
+
+            Examples:
+                - "AAPL"      -> Apple
+                - "NVDA"      -> NVIDIA
+                - "GC=F"      -> Gold Futures
+                - "EURUSD=X"  -> EUR/USD Forex
+                - "BTC-USD"   -> Bitcoin
+
+        start_date (str, optional):
+            Start date in YYYY-MM-DD format.
+
+        end_date (str, optional):
+            End date in YYYY-MM-DD format.
+
+        interval (str, optional):
+            Data interval.
+
+            Examples:
+                - "1m"
+                - "5m"
+                - "15m"
+                - "1h"
+                - "1d"
+                - "1wk"
+                - "1mo"
+
+    Returns:
+        pd.DataFrame:
+            Historical OHLCV market data.
+
+            Columns typically include:
+                - Open
+                - High
+                - Low
+                - Close
+                - Volume
+                - Dividends
+                - Stock Splits
+
+            Returns an empty DataFrame if no data is found.
+
+    Example:
+        >>> df = get_hist_data(
+        ...     ticker="NVDA",
+        ...     start_date="2025-01-01",
+        ...     end_date="2025-02-01",
+        ...     interval="1d"
+        ... )
+
+        >>> print(df.head())
+
+    Notes:
+        - Data source: Yahoo Finance
+        - Returned DataFrame can directly be exported to Excel:
+
+              df.to_excel("market_data.xlsx", index=True)
+    """
+
+    # -----------------------------
+    # Validate dates
+    # -----------------------------
+    try:
+        datetime.strptime(start_date, "%Y-%m-%d")
+        datetime.strptime(end_date, "%Y-%m-%d")
+    except ValueError:
+        raise ValueError(
+            "Dates must be in YYYY-MM-DD format."
+        )
+
+    try:
+        # -----------------------------
+        # Initialize ticker
+        # -----------------------------
+        tick = yf.Ticker(ticker)
+
+        # -----------------------------
+        # Fetch historical data
+        # -----------------------------
+        hist = tick.history(
+            start=start_date,
+            end=end_date,
+            interval=interval,
+            repair=True,
+        )
+        # -----------------------------
+        # Handle empty data
+        # -----------------------------
+        if hist.empty:
+            df = pd.DataFrame(
+                    columns=[
+                        "asset_name",
+                        "asset_type",
+                        "base_currency",
+                        "stock_sector",
+                        "commodity_group",
+                        "observed_at",
+                        "price_value",
+                        "day_change_pct",
+                        "volume",
+                        "market_cap",
+                        "pe_ratio",
+                    ]
+                )
+            return df
+
+        # -----------------------------
+        # Clean DataFrame
+        # -----------------------------
+        hist = hist.fillna(0)
+
+  
+        return  hist.to_json()
+    except Exception as e:
+        print(f"Yahoo Finance error: {e}")
+        df = pd.DataFrame(
+                    columns=[
+                        "asset_name",
+                        "asset_type",
+                        "base_currency",
+                        "stock_sector",
+                        "commodity_group",
+                        "observed_at",
+                        "price_value",
+                        "day_change_pct",
+                        "volume",
+                        "market_cap",
+                        "pe_ratio",
+                    ]
+                )
+        return df # Return empty DataFrame on failure
+        
 
 
 def main():
