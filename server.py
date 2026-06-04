@@ -14,10 +14,6 @@ load_dotenv(override=True)
 
 # Database connection string
 conn_string = os.getenv("DATABASE_URL")
-print("========== MCP STARTING ==========")
-print(f"PORT={os.getenv('PORT')}")
-print(f"DATABASE_URL exists={bool(os.getenv('DATABASE_URL'))}")
-print("==================================")
 port = int(os.getenv("PORT", 8000))
 # Initialize FastMCP server
 mcp = FastMCP("mcp-db", host="0.0.0.0", port=port)
@@ -469,6 +465,10 @@ def get_hist_data(
 
 
 def main():
+    print("========== MCP STARTING ==========")
+    print(f"PORT={os.getenv('PORT')}")
+    print(f"DATABASE_URL exists={bool(os.getenv('DATABASE_URL'))}")
+    print("==================================")
     mcp.run(transport="streamable-http")
 
 
