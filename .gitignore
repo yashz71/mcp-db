@@ -70,4 +70,4 @@ build/
 # MCP / runtime
 # =========================
 *.sqlite
-*.db
+*.dbantenv/
